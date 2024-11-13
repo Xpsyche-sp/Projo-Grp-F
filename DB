@@ -1,0 +1,119 @@
+import sqlite3
+from contextlib import closing
+
+def create_tables(connection):
+    # Create a cursor object to interact with the database
+    cursor = connection.cursor()
+    
+    # Create patients table if it does not already exist
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS patients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            gender TEXT NOT NULL,
+            contact TEXT NOT NULL,
+            doctor_name TEXT NOT NULL,
+            disease TEXT NOT NULL
+        )
+    """)
+    
+    # Create doctors table if it does not already exist
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS doctors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            specialty TEXT NOT NULL
+        )
+    """)
+    
+    # Create appointments table with foreign keys to patients and doctors
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER NOT NULL,
+            doctor_id INTEGER NOT NULL,
+            appointment_date TEXT NOT NULL,
+            FOREIGN KEY (patient_id) REFERENCES patients (id),
+            FOREIGN KEY (doctor_id) REFERENCES doctors (id)
+        )
+    """)
+    
+    # Create HDU (High Dependency Unit) table with a foreign key to patients
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS hdu (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER NOT NULL,
+            admission_date TEXT NOT NULL,
+            discharge_date TEXT,
+            reason_for_admission TEXT NOT NULL,
+            FOREIGN KEY (patient_id) REFERENCES patients (id)
+        )
+    """)
+    
+    # Commit the changes to the database
+    connection.commit()
+
+def insert_data(connection):
+    # Insert sample data into the doctors table
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO doctors (name, specialty) VALUES ('Dr. John Smith', 'Cardiology')")
+    cursor.execute("INSERT INTO doctors (name, specialty) VALUES ('Dr. Jane Doe', 'Oncology')")
+    connection.commit()
+    
+    # Insert sample data into the patients table
+    cursor.execute("INSERT INTO patients (name, age, gender, contact, doctor_name, disease) VALUES ('John Doe', 30, 'Male', '123-456-7890', 'Dr. John Smith', 'Hypertension')")
+    cursor.execute("INSERT INTO patients (name, age, gender, contact, doctor_name, disease) VALUES ('Jane Doe', 25, 'Female', '987-654-3210', 'Dr. Jane Doe', 'Diabetes')")
+    connection.commit()
+    
+    # Insert sample data into the appointments table
+    cursor.execute("INSERT INTO appointments (patient_id, doctor_id, appointment_date) VALUES (1, 1, '2024-11-15')")
+    cursor.execute("INSERT INTO appointments (patient_id, doctor_id, appointment_date) VALUES (2, 2, '2024-11-16')")
+    connection.commit()
+    
+    # Insert sample data into the HDU table
+    cursor.execute("INSERT INTO hdu (patient_id, admission_date, reason_for_admission) VALUES (1, '2024-11-10', 'Post-surgical care')")
+    cursor.execute("INSERT INTO hdu (patient_id, admission_date, reason_for_admission) VALUES (2, '2024-11-12', 'Close monitoring for complications')")
+    connection.commit()
+
+def admit_patient(connection, patient_id, admission_date, reason_for_admission):
+    # Admit a patient to the HDU with the specified details
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO hdu (patient_id, admission_date, reason_for_admission) VALUES (?, ?, ?)", (patient_id, admission_date, reason_for_admission))
+    connection.commit()
+
+def update_hdu_status(connection, hdu_id, discharge_date=None):
+    # Update the discharge date for a patient in the HDU
+    cursor = connection.cursor()
+    if discharge_date:
+        cursor.execute("UPDATE hdu SET discharge_date = ? WHERE id = ?", (discharge_date, hdu_id))
+    connection.commit()
+
+def retrieve_hdu_patient(connection, patient_id):
+    # Retrieve HDU data for a specific patient
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM hdu WHERE patient_id = ?", (patient_id,))
+    return cursor.fetchone()  # Return the first matching record
+
+def main():
+    try:
+        # Connect to the SQLite database. If the file does not exist, it will be created.
+        with closing(sqlite3.connect('healthcare_db.py')) as connection:
+            create_tables(connection)  # Create necessary tables
+            insert_data(connection)     # Insert sample data
+            
+            # Retrieve and print HDU data
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM hdu")
+            hdu_data = cursor.fetchall()  # Call fetchall() to get the data
+            print(hdu_data)  # Print the retrieved data
+
+    except sqlite3.Error as e:
+        # Handle any SQLite errors
+        print(f"An error occurred while interacting with the database: {e}")
+
+    finally:
+        print("Database operation completed.")
+
+if __name__ == "__main__":
+    main()
