@@ -1,0 +1,51 @@
+import sqlite3
+from contextlib import closing
+
+def create_tables(connection):
+    cursor = connection.cursor()
+    
+    # Create appointments table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER,
+            doctor_id INTEGER,
+            appointment_date TEXT
+        )
+    ''')
+
+    # Create HDU table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS hdu (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER,
+            admission_date TEXT,
+            reason_for_admission TEXT,
+            discharge_date TEXT
+        )
+    ''')
+    
+    connection.commit()
+
+def insert_data(connection):
+    cursor = connection.cursor()
+    
+    # Insert sample data into the appointments table
+    cursor.execute("INSERT INTO appointments (patient_id, doctor_id, appointment_date) VALUES (1, 1, '2024-11-15')")
+    cursor.execute("INSERT INTO appointments (patient_id, doctor_id, appointment_date) VALUES (2, 2, '2024-11-16')")
+    connection.commit()
+    
+    # Insert sample data into the HDU table
+    cursor.execute("INSERT INTO hdu (patient_id, admission_date, reason_for_admission) VALUES (1, '2024-11-10', 'Post-surgical care')")
+    cursor.execute("INSERT INTO hdu (patient_id, admission_date, reason_for_admission) VALUES (2, '2024-11-12', 'Close monitoring for complications')")
+    connection.commit()
+
+def main():
+    # Connect to the SQLite database. If the file does not exist, it will be created.
+    with closing(sqlite3.connect('healthcare_management.db')) as connection:
+        create_tables(connection)  # Create necessary tables
+        insert_data(connection)     # Insert sample data
+        print("Database and sample data created successfully.")
+
+if __name__ == "__main__":
+    main()
